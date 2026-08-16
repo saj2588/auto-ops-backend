@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: auto-ops-chat
+    env: node
+    branch: main
+    plan: free
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm start
+    dockerfilePath: ""
+    # Environment variables should be set in the Render dashboard (do NOT store secrets in this file)
+    # Required env var names:
+    # - AZURE_OPENAI_ENDPOINT
+    # - AZURE_OPENAI_API_KEY
+    # - AZURE_OPENAI_DEPLOYMENT_NAME
