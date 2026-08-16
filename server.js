@@ -22,9 +22,23 @@ console.log('🔑 API Key:', apiKey ? '✅ Set' : '❌ Missing');
 console.log('==================================================');
 
 const client = new OpenAI({
-  baseURL: endpoint,
+  // Normalize Azure endpoint: ensure it includes '/openai' but not '/v1'
+  baseURL: (() => {
+    if (!endpoint) return endpoint;
+    let e = endpoint.trim();
+    // remove trailing slash
+    e = e.replace(/\/+$/, '');
+    // if endpoint already contains '/openai', ensure it doesn't end with /v1
+    if (e.toLowerCase().includes('/openai')) {
+      e = e.replace(/\/v1$/i, '').replace(/\/v1\/$/i, '');
+      return e;
+    }
+    return `${e}/openai`;
+  })(),
   apiKey: apiKey,
 });
+
+console.log('📡 Using Azure base URL:', client.baseURL || process.env.AZURE_OPENAI_ENDPOINT);
 
 // ============================================================
 // PROMPT 1: AUTO-OPS (Business Automation Agency)
