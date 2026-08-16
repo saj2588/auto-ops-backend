@@ -11,6 +11,10 @@
     "server": "node server.js",
     "dev:full": "concurrently \"npm run server\" \"npm run dev\""
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "start": "node server.js",
   "dependencies": {
     "@headlessui/react": "^1.7.19",
     "cors": "^2.8.5",
