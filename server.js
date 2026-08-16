@@ -24,13 +24,29 @@ console.log('==================================================');
 // Normalize Azure endpoint once and log it
 const azureBase = (() => {
   if (!endpoint) return endpoint;
-  let e = endpoint.trim();
-  e = e.replace(/\/+$/, '');
+
+  let e = endpoint.trim().replace(/\/+$/, '');
+
+  // Azure AI Foundry Project endpoint format:
+  // https://<project>.services.ai.azure.com/api/projects/<project>
+  // Azure OpenAI resource endpoint format:
+  // https://<resource>.openai.azure.com/openai/v1
+  if (e.includes('.services.ai.azure.com')) {
+    e = e.replace(/\.services\.ai\.azure\.com/i, '.openai.azure.com');
+  }
+
+  // Remove any project-specific path suffixes after the resource host
+  if (e.includes('/api/projects/')) {
+    e = e.split('/api/projects/')[0];
+  }
+
+  // Ensure we end with /openai/v1 for the OpenAI SDK
   if (e.toLowerCase().includes('/openai')) {
     e = e.replace(/\/v1$/i, '').replace(/\/v1\/$/i, '');
-    return e;
+    return `${e}/v1`;
   }
-  return `${e}/openai`;
+
+  return `${e}/openai/v1`;
 })();
 
 console.log('📡 AZURE_OPENAI_ENDPOINT env:', endpoint);
