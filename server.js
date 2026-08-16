@@ -21,24 +21,25 @@ console.log('📡 Deployment:', deployment);
 console.log('🔑 API Key:', apiKey ? '✅ Set' : '❌ Missing');
 console.log('==================================================');
 
+// Normalize Azure endpoint once and log it
+const azureBase = (() => {
+  if (!endpoint) return endpoint;
+  let e = endpoint.trim();
+  e = e.replace(/\/+$/, '');
+  if (e.toLowerCase().includes('/openai')) {
+    e = e.replace(/\/v1$/i, '').replace(/\/v1\/$/i, '');
+    return e;
+  }
+  return `${e}/openai`;
+})();
+
+console.log('📡 AZURE_OPENAI_ENDPOINT env:', endpoint);
+console.log('📡 Computed Azure base URL:', azureBase);
+
 const client = new OpenAI({
-  // Normalize Azure endpoint: ensure it includes '/openai' but not '/v1'
-  baseURL: (() => {
-    if (!endpoint) return endpoint;
-    let e = endpoint.trim();
-    // remove trailing slash
-    e = e.replace(/\/+$/, '');
-    // if endpoint already contains '/openai', ensure it doesn't end with /v1
-    if (e.toLowerCase().includes('/openai')) {
-      e = e.replace(/\/v1$/i, '').replace(/\/v1\/$/i, '');
-      return e;
-    }
-    return `${e}/openai`;
-  })(),
+  baseURL: azureBase,
   apiKey: apiKey,
 });
-
-console.log('📡 Using Azure base URL:', client.baseURL || process.env.AZURE_OPENAI_ENDPOINT);
 
 // ============================================================
 // PROMPT 1: AUTO-OPS (Business Automation Agency)
@@ -245,14 +246,34 @@ app.post('/api/chat', async (req, res) => {
     
     conversation.push({ role: 'user', content: message });
 
-    console.log('📤 Sending to Azure...');
+    console.log('📤 Sending to Azure... Deployment:', deployment);
+    console.log('📤 Conversation summary:', conversation.map(c => ({ role: c.role, content: (c.content || '').substring(0, 120) })));
 
-    const response = await client.responses.create({
-      model: deployment,
-      input: conversation,
-      temperature: 0.7,
-      max_output_tokens: 500,
-    });
+    let response;
+    try {
+      response = await client.responses.create({
+        model: deployment,
+        input: conversation,
+        temperature: 0.7,
+        max_output_tokens: 500,
+      });
+    } catch (err) {
+      console.error('❌ Azure call failed:', err?.message || err);
+      // Log HTTP details when available
+      if (err?.response) {
+        try {
+          console.error('📄 Azure response status:', err.response.status);
+          console.error('📄 Azure response data:', JSON.stringify(err.response.data, null, 2));
+        } catch (e) {
+          console.error('📄 Could not stringify err.response:', e);
+        }
+      } else if (err?.body) {
+        console.error('📄 Azure error body:', err.body);
+      } else {
+        console.error(err);
+      }
+      throw err;
+    }
 
     const botResponse = parseResponse(response);
 
